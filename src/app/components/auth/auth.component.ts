@@ -10,8 +10,9 @@ import { AuthService } from '../../services/auth.service';
   template: `
     <div class="auth-container">
       <div class="auth-card">
-        <h1>FTA Time Tracker</h1>
-        <p class="subtitle">Fractional Tech Advisory</p>
+        <img src="assets/nta-logo.jpg" alt="NTA logo" class="auth-logo">
+        <h1>Notarangelo Technical Advisory</h1>
+        <p class="subtitle">Time & Invoicing</p>
 
         <div class="tab-bar">
           <button [class.active]="mode === 'login'" (click)="mode = 'login'">Sign In</button>
@@ -68,16 +69,29 @@ import { AuthService } from '../../services/auth.service';
       max-width: 420px;
       box-shadow: $shadow-xl;
 
+      .auth-logo {
+        display: block;
+        width: 96px;
+        height: 96px;
+        object-fit: contain;
+        border-radius: 14px;
+        margin: 0 auto $spacing-base;
+      }
+
       h1 {
         text-align: center;
         color: $color-primary;
         margin-bottom: $spacing-xs;
-        font-size: $font-size-3xl;
+        font-size: $font-size-lg;
+        font-weight: $font-weight-semibold;
+        letter-spacing: 0.03em;
       }
 
       .subtitle {
         text-align: center;
         color: $color-text-muted;
+        font-size: $font-size-sm;
+        letter-spacing: 0.05em;
         margin-bottom: $spacing-xl;
       }
     }

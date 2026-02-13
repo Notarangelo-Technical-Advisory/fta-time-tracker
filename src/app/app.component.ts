@@ -12,7 +12,9 @@ import { appVersion } from '../environments/version';
     <div class="app-layout" *ngIf="authService.user$ | async as user; else noAuth">
       <nav class="sidebar">
         <div class="sidebar-header">
-          <h2>FTA Tracker</h2>
+          <img src="assets/nta-logo.jpg" alt="NTA logo" class="sidebar-logo">
+          <h2>Notarangelo Technical Advisory</h2>
+          <span class="sidebar-subtitle">Time & Invoicing</span>
         </div>
         <ul class="nav-links">
           <li><a routerLink="/dashboard" routerLinkActive="active">Dashboard</a></li>
