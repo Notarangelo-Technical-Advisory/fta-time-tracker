@@ -131,8 +131,8 @@ jobs:
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/sa-key.json"
           echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa-key.json" >> "$GITHUB_ENV"
 
-      - name: Deploy to Firebase Hosting
-        run: firebase deploy --only hosting --project "$FIREBASE_PROJECT"
+      - name: Deploy to Firebase
+        run: firebase deploy --only hosting,firestore --project "$FIREBASE_PROJECT"
 
       - name: Cleanup credentials
         if: always()

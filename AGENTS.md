@@ -27,8 +27,73 @@ Always follow this feature-branch workflow:
 
 4. **Never commit directly to main.** All changes go through feature branches and PRs. Merging to main triggers the deploy-and-release CI/CD pipeline.
 
+## Firebase Deployment
+
+### Automatic Deployment (Preferred)
+
+The app automatically deploys to Firebase when code is pushed to the `main` branch via the GitHub Actions workflow (`.github/workflows/deploy-and-release.yml`).
+
+**What gets deployed:**
+
+- **Hosting**: Angular app build to `https://fta-invoice-tracking.web.app`
+- **Firestore Rules**: Security rules from `firestore.rules`
+- **Firestore Indexes**: Database indexes from `firestore.indexes.json`
+
+**Authentication**: Uses the `FIREBASE_SERVICE_ACCOUNT` GitHub secret (service account JSON).
+
+### Manual Deployment (When Needed)
+
+Use manual deployment to deploy changes without creating a new release (e.g., Firestore rules hotfix).
+
+**Prerequisites:**
+
+1. Authenticate with Google Cloud:
+
+   ```bash
+   gcloud auth application-default login
+   ```
+
+2. Set the quota project:
+
+   ```bash
+   gcloud auth application-default set-quota-project fta-invoice-tracking
+   ```
+
+**Commands:**
+
+```bash
+# Deploy everything (hosting + firestore rules/indexes)
+npm run deploy
+
+# Deploy only hosting
+npm run deploy:hosting
+
+# Deploy only Firestore rules and indexes
+npm run deploy:firestore
+
+# Deploy via non-interactive script
+node deploy-non-interactive.js
+```
+
+### Troubleshooting
+
+**Problem:** `Failed to authenticate` or `quota project` error
+
+**Solution:**
+
+```bash
+gcloud auth application-default login
+gcloud auth application-default set-quota-project fta-invoice-tracking
+```
+
+**Verify deployment:**
+
+- Open [Firebase Console → Firestore → Rules](https://console.firebase.google.com/project/fta-invoice-tracking/firestore/rules)
+- Check the timestamp to confirm rules were updated
+- For hosting, visit `https://fta-invoice-tracking.web.app` and hard-refresh (Cmd+Shift+R)
+
 ## Project Notes
 
 - Angular app deployed to Firebase Hosting via GitHub Actions.
 - CI/CD pipeline: `.github/workflows/deploy-and-release.yml` triggers on push to main.
-- The pipeline auto-versions (semver), builds, deploys to Firebase, generates AI release notes, and creates a GitHub Release.
+- The pipeline auto-versions (semver), builds, deploys to Firebase (hosting + firestore), generates AI release notes, and creates a GitHub Release.
