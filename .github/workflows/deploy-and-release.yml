@@ -98,7 +98,7 @@ jobs:
       - name: Inject version
         run: echo "export const appVersion = '${{ needs.version.outputs.new_version }}';" > src/environments/version.ts
 
-      - run: npm ci
+      - run: npm install
 
       - run: npm run build:prod
 
