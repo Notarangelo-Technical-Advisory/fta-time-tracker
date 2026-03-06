@@ -116,7 +116,7 @@ import { Project } from '../../models/project.model';
                 <div class="invoice-header">
                   <div class="invoice-from">
                     <img src="assets/nta-logo.jpg" alt="NTA Logo" class="invoice-logo">
-                    <p>Jack Notarangelo</p>
+                    <p>Notarangelo Technical Advisory</p>
                   </div>
                   <div class="invoice-to">
                     <h4>Bill To</h4>

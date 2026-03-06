@@ -33,7 +33,7 @@ import autoTable from 'jspdf-autotable';
         <div class="invoice-header">
           <div class="invoice-from">
             <img src="assets/nta-logo.jpg" alt="NTA Logo" class="invoice-logo">
-            <p>Jack Notarangelo</p>
+            <p>Notarangelo Technical Advisory</p>
           </div>
           <div class="invoice-to">
             <h4>Bill To</h4>
@@ -374,7 +374,7 @@ export class InvoiceDetailComponent implements OnInit {
 
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text('Jack Notarangelo', 14, logoY + 5);
+    doc.text('Notarangelo Technical Advisory', 14, logoY + 5);
 
     // Invoice details (right side)
     doc.setFontSize(10);
