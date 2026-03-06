@@ -55,7 +55,7 @@ import { Invoice } from '../../models/invoice.model';
             <a routerLink="/invoices/generate" class="action-card">
               <span class="action-icon">$</span>
               <span class="action-label">Generate Invoice</span>
-              <span class="action-desc">Turn unbilled hours into an invoice</span>
+              <span class="action-desc">Select a customer, pick unbilled entries, then review &amp; generate</span>
             </a>
             <a routerLink="/customers/new" class="action-card">
               <span class="action-icon">&#64;</span>
