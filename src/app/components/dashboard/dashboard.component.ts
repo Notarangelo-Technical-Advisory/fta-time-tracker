@@ -4,8 +4,11 @@ import { RouterLink } from '@angular/router';
 import { TimeEntryService } from '../../services/time-entry.service';
 import { InvoiceService } from '../../services/invoice.service';
 import { CustomerService } from '../../services/customer.service';
+import { ProjectService } from '../../services/project.service';
 import { TimeEntry } from '../../models/time-entry.model';
 import { Invoice } from '../../models/invoice.model';
+import { Customer } from '../../models/customer.model';
+import { Project } from '../../models/project.model';
 
 @Component({
     selector: 'app-dashboard',
@@ -27,6 +30,7 @@ import { Invoice } from '../../models/invoice.model';
           <div class="summary-card">
             <span class="card-label">Unbilled Hours</span>
             <span class="card-value warning">{{ unbilledHours }}</span>
+            <button class="preview-invoice-btn" *ngIf="unbilledHours > 0" (click)="openInvoicePreview()">Preview Invoice</button>
           </div>
           <div class="summary-card">
             <span class="card-label">Outstanding Invoices</span>
@@ -128,6 +132,52 @@ import { Invoice } from '../../models/invoice.model';
           </table>
           <div class="empty-hint" *ngIf="recentInvoices.length === 0">
             <p>No invoices yet. <a routerLink="/invoices/generate">Generate your first invoice</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Invoice Preview Modal -->
+    <div class="modal-backdrop" *ngIf="showInvoicePreview" (click)="closeInvoicePreview()">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>Invoice Preview</h2>
+          <button class="modal-close" (click)="closeInvoicePreview()">&#x2715;</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-subtitle">Projected invoice for all unbilled time entries, grouped by customer.</p>
+
+          <div *ngFor="let group of invoicePreviewGroups" class="preview-customer">
+            <div class="preview-customer-header">
+              <span class="preview-customer-name">{{ group.customerName }}</span>
+              <span class="preview-customer-total">\${{ group.total.toFixed(2) }}</span>
+            </div>
+            <table class="preview-table">
+              <thead>
+                <tr>
+                  <th>Project</th>
+                  <th>Hours</th>
+                  <th>Rate</th>
+                  <th>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let line of group.lineItems">
+                  <td>{{ line.projectName }}</td>
+                  <td>{{ line.hours }}</td>
+                  <td>\${{ line.rate }}/hr</td>
+                  <td class="amount-cell">\${{ line.amount.toFixed(2) }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="preview-customer-action">
+              <a [routerLink]="['/invoices/generate']" class="btn-generate" (click)="closeInvoicePreview()">Generate Invoice for {{ group.customerName }}</a>
+            </div>
+          </div>
+
+          <div class="preview-grand-total">
+            <span>Total Unbilled Value</span>
+            <span>\${{ invoicePreviewGrandTotal.toFixed(2) }}</span>
           </div>
         </div>
       </div>
@@ -338,6 +388,152 @@ import { Invoice } from '../../models/invoice.model';
       a { color: $color-secondary; text-decoration: none; &:hover { text-decoration: underline; } }
     }
 
+    .preview-invoice-btn {
+      margin-top: $spacing-sm;
+      padding: $spacing-xs $spacing-sm;
+      font-size: $font-size-xs;
+      font-weight: $font-weight-semibold;
+      color: $color-warning-text;
+      background: $color-warning-light;
+      border: $border-width-thin solid $color-warning;
+      border-radius: $border-radius-sm;
+      cursor: pointer;
+      transition: $transition-all;
+      align-self: flex-start;
+
+      &:hover { background: $color-warning; color: $color-white; }
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: $spacing-base;
+    }
+
+    .modal {
+      background: $color-white;
+      border-radius: $card-border-radius;
+      box-shadow: $shadow-lg;
+      width: 100%;
+      max-width: 640px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      @include flex-between;
+      padding: $spacing-xl;
+      border-bottom: $border-width-thin solid $color-border;
+
+      h2 {
+        font-size: $font-size-xl;
+        font-weight: $font-weight-bold;
+        color: $color-text-primary;
+        margin: 0;
+      }
+
+      .modal-close {
+        background: none;
+        border: none;
+        font-size: $font-size-lg;
+        cursor: pointer;
+        color: $color-text-muted;
+        padding: $spacing-xs;
+        line-height: 1;
+        &:hover { color: $color-text-primary; }
+      }
+    }
+
+    .modal-body {
+      padding: $spacing-xl;
+      overflow-y: auto;
+    }
+
+    .modal-subtitle {
+      color: $color-text-muted;
+      margin: 0 0 $spacing-xl 0;
+      font-size: $font-size-sm;
+    }
+
+    .preview-customer {
+      margin-bottom: $spacing-xl;
+      border: $border-width-thin solid $color-border;
+      border-radius: $border-radius-base;
+      overflow: hidden;
+
+      &:last-of-type { margin-bottom: 0; }
+    }
+
+    .preview-customer-header {
+      @include flex-between;
+      padding: $spacing-base $spacing-base $spacing-sm;
+      background: $color-gray-50;
+
+      .preview-customer-name {
+        font-weight: $font-weight-bold;
+        color: $color-text-primary;
+      }
+
+      .preview-customer-total {
+        font-weight: $font-weight-bold;
+        color: $color-primary;
+        font-size: $font-size-lg;
+      }
+    }
+
+    .preview-table {
+      width: 100%;
+      border-collapse: collapse;
+
+      th, td {
+        padding: $spacing-sm $spacing-base;
+        text-align: left;
+        border-bottom: $border-width-thin solid $color-border;
+        font-size: $font-size-sm;
+      }
+
+      th {
+        font-weight: $font-weight-semibold;
+        color: $color-text-secondary;
+        text-transform: uppercase;
+        letter-spacing: $letter-spacing-wide;
+        font-size: $font-size-xs;
+        background: $color-gray-50;
+      }
+
+      tbody tr:last-child td { border-bottom: none; }
+    }
+
+    .preview-customer-action {
+      padding: $spacing-base;
+      display: flex;
+      justify-content: flex-end;
+      border-top: $border-width-thin solid $color-border-light;
+
+      .btn-generate {
+        @include button-primary;
+        text-decoration: none;
+        font-size: $font-size-sm;
+      }
+    }
+
+    .preview-grand-total {
+      @include flex-between;
+      margin-top: $spacing-xl;
+      padding: $spacing-base;
+      background: $color-primary-light;
+      border-radius: $border-radius-base;
+      font-weight: $font-weight-bold;
+      color: $color-primary;
+      font-size: $font-size-lg;
+    }
+
     .loading-state {
       text-align: center;
       padding: $spacing-3xl;
@@ -357,27 +553,39 @@ export class DashboardComponent implements OnInit {
   private timeEntryService = inject(TimeEntryService);
   private invoiceService = inject(InvoiceService);
   private customerService = inject(CustomerService);
+  private projectService = inject(ProjectService);
 
   loading = true;
   recentEntries: TimeEntry[] = [];
   recentInvoices: Invoice[] = [];
-  private customerMap = new Map<string, string>();
+  private customerMap = new Map<string, Customer>();
+  private projectMap = new Map<string, Project>();
+  private allUnbilledEntries: TimeEntry[] = [];
 
   unbilledHours = 0;
   outstandingTotal = 0;
   monthlyRevenue = 0;
   activeCustomerCount = 0;
 
+  showInvoicePreview = false;
+  invoicePreviewGroups: { customerName: string; customerId: string; total: number; lineItems: { projectName: string; hours: number; rate: number; amount: number }[] }[] = [];
+  invoicePreviewGrandTotal = 0;
+
   ngOnInit(): void {
     this.customerService.getActiveCustomers().subscribe(customers => {
       this.activeCustomerCount = customers.length;
-      customers.forEach(c => this.customerMap.set(c.id, c.companyName));
+      customers.forEach(c => this.customerMap.set(c.id, c));
+    });
+
+    this.projectService.getProjects().subscribe(projects => {
+      projects.forEach(p => this.projectMap.set(p.id, p));
     });
 
     this.timeEntryService.getTimeEntries().subscribe(entries => {
       this.recentEntries = entries.slice(0, 5);
+      this.allUnbilledEntries = entries.filter(e => e.status === 'unbilled');
       this.unbilledHours = Math.round(
-        entries.filter(e => e.status === 'unbilled').reduce((sum, e) => sum + e.durationHours, 0) * 100
+        this.allUnbilledEntries.reduce((sum, e) => sum + e.durationHours, 0) * 100
       ) / 100;
       this.loading = false;
     });
@@ -396,8 +604,55 @@ export class DashboardComponent implements OnInit {
     });
   }
 
+  openInvoicePreview(): void {
+    // Group unbilled entries by customer
+    const byCustomer = new Map<string, TimeEntry[]>();
+    for (const entry of this.allUnbilledEntries) {
+      const list = byCustomer.get(entry.customerId) || [];
+      list.push(entry);
+      byCustomer.set(entry.customerId, list);
+    }
+
+    this.invoicePreviewGroups = [];
+    this.invoicePreviewGrandTotal = 0;
+
+    byCustomer.forEach((entries, customerId) => {
+      const customer = this.customerMap.get(customerId);
+      const customerName = customer?.companyName || customerId;
+
+      // Group by project within customer
+      const byProject = new Map<string, number>();
+      for (const entry of entries) {
+        byProject.set(entry.projectId, (byProject.get(entry.projectId) || 0) + entry.durationHours);
+      }
+
+      const lineItems: { projectName: string; hours: number; rate: number; amount: number }[] = [];
+      let total = 0;
+
+      byProject.forEach((hours, projectId) => {
+        const project = this.projectMap.get(projectId);
+        const rate = project?.hourlyRate || customer?.hourlyRate || 0;
+        const roundedHours = Math.round(hours * 100) / 100;
+        const amount = Math.round(roundedHours * rate * 100) / 100;
+        total += amount;
+        lineItems.push({ projectName: project?.projectName || projectId, hours: roundedHours, rate, amount });
+      });
+
+      total = Math.round(total * 100) / 100;
+      this.invoicePreviewGrandTotal += total;
+      this.invoicePreviewGroups.push({ customerName, customerId, total, lineItems });
+    });
+
+    this.invoicePreviewGrandTotal = Math.round(this.invoicePreviewGrandTotal * 100) / 100;
+    this.showInvoicePreview = true;
+  }
+
+  closeInvoicePreview(): void {
+    this.showInvoicePreview = false;
+  }
+
   getCustomerName(customerId: string): string {
-    return this.customerMap.get(customerId) || customerId;
+    return this.customerMap.get(customerId)?.companyName || customerId;
   }
 
   formatDate(dateStr: string): string {
