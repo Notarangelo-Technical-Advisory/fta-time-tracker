@@ -508,7 +508,7 @@ export class CustomerListComponent implements OnInit {
         this.previewTotal += amount;
         this.previewLineItems.push({
           projectName: project?.projectName || entry.projectId,
-          description: entry.description ? `${entry.date} — ${entry.description}` : entry.date,
+          description: (() => { const [y,m,d] = entry.date.split('-'); const fd = `${m}/${d}/${y}`; return entry.description ? `${fd} — ${entry.description}` : fd; })(),
           hours,
           rate,
           amount

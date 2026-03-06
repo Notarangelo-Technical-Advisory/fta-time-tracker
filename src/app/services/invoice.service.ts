@@ -56,8 +56,9 @@ export class InvoiceService {
         rate: projectInfo.rate,
         amount
       };
-      if (entry.description) lineItem.description = `${entry.date} — ${entry.description}`;
-      else lineItem.description = entry.date;
+      const [y, m, d] = entry.date.split('-');
+      const fmtDate = `${m}/${d}/${y}`;
+      lineItem.description = entry.description ? `${fmtDate} — ${entry.description}` : fmtDate;
       lineItems.push(lineItem);
     }
 
