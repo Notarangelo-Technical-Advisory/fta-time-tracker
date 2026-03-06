@@ -2,9 +2,11 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { Observable, map } from 'rxjs';
 import { CustomerService } from '../../services/customer.service';
+import { TimeEntryService } from '../../services/time-entry.service';
+import { ProjectService } from '../../services/project.service';
 import { Customer } from '../../models/customer.model';
+import { Project } from '../../models/project.model';
 
 @Component({
     selector: 'app-customer-list',
@@ -50,6 +52,7 @@ import { Customer } from '../../models/customer.model';
             <th>Email</th>
             <th>Phone</th>
             <th>Rate</th>
+            <th>Unbilled Hrs</th>
             <th>Status</th>
             <th>Actions</th>
           </tr>
@@ -71,18 +74,109 @@ import { Customer } from '../../models/customer.model';
               <span *ngIf="customer.hourlyRate">\${{ customer.hourlyRate }}/hr</span>
               <span class="text-muted" *ngIf="!customer.hourlyRate">—</span>
             </td>
+            <td class="unbilled-cell">
+              <span *ngIf="getUnbilledHours(customer.id) > 0" class="unbilled-hours">{{ getUnbilledHours(customer.id) }}</span>
+              <span class="text-muted" *ngIf="getUnbilledHours(customer.id) === 0">—</span>
+            </td>
             <td>
               <span class="status-badge" [class.active]="customer.isActive" [class.inactive]="!customer.isActive">
                 {{ customer.isActive ? 'Active' : 'Inactive' }}
               </span>
             </td>
             <td class="actions">
+              <button class="btn-action" (click)="openPreview(customer)">Preview Invoice</button>
               <a [routerLink]="['/customers', customer.id, 'edit']" class="btn-action">Edit</a>
               <button class="btn-action btn-action-danger" (click)="confirmDelete(customer)">Delete</button>
             </td>
           </tr>
         </tbody>
       </table>
+
+      <!-- Invoice Preview Modal -->
+      <div class="modal-overlay" *ngIf="previewCustomer" (click)="closePreview()">
+        <div class="modal-content modal-content-wide" (click)="$event.stopPropagation()">
+          <div class="modal-top-bar">
+            <h3>Invoice Preview — {{ previewCustomer.companyName }}</h3>
+            <button class="modal-close" (click)="closePreview()">&#x2715;</button>
+          </div>
+
+          <div class="modal-scroll-body">
+            <div class="loading-state" *ngIf="previewLoading">
+              <div class="loading-spinner"></div>
+              <p>Loading unbilled entries...</p>
+            </div>
+
+            <div *ngIf="!previewLoading && previewLineItems.length === 0" class="no-unbilled">
+              <p>No unbilled time entries for {{ previewCustomer.companyName }}.</p>
+            </div>
+
+            <div *ngIf="!previewLoading && previewLineItems.length > 0">
+              <!-- Invoice header replica -->
+              <div class="invoice-doc-header">
+                <div class="invoice-from">
+                  <h4>Fractional Tech Advisory</h4>
+                  <p>Jack Notarangelo</p>
+                </div>
+                <div class="invoice-to">
+                  <span class="bill-to-label">Bill To</span>
+                  <p class="customer-name">{{ previewCustomer.companyName }}</p>
+                </div>
+              </div>
+
+              <!-- Invoice meta -->
+              <div class="invoice-doc-meta">
+                <div class="meta-item">
+                  <span class="meta-label">Invoice #</span>
+                  <span class="meta-value meta-pending">Auto-generated</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">Issue Date</span>
+                  <span class="meta-value">{{ previewIssueDate }}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">Due Date</span>
+                  <span class="meta-value">{{ previewDueDate }}</span>
+                </div>
+              </div>
+
+              <!-- Line items -->
+              <table class="invoice-doc-table">
+                <thead>
+                  <tr>
+                    <th>Project</th>
+                    <th>Hours</th>
+                    <th>Rate</th>
+                    <th class="text-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let line of previewLineItems">
+                    <td>{{ line.projectName }}</td>
+                    <td>{{ line.hours }}</td>
+                    <td>\${{ line.rate.toFixed(2) }}/hr</td>
+                    <td class="text-right">\${{ line.amount.toFixed(2) }}</td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr class="subtotal-row">
+                    <td colspan="3">Subtotal</td>
+                    <td class="text-right">\${{ previewTotal.toFixed(2) }}</td>
+                  </tr>
+                  <tr class="total-row">
+                    <td colspan="3">Total</td>
+                    <td class="text-right">\${{ previewTotal.toFixed(2) }}</td>
+                  </tr>
+                </tfoot>
+              </table>
+
+              <div class="modal-actions">
+                <button class="btn-secondary" (click)="closePreview()">Close</button>
+                <a [routerLink]="['/invoices/generate']" class="btn-primary" (click)="closePreview()">Generate Invoice</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- Delete confirmation modal -->
       <div class="modal-overlay" *ngIf="customerToDelete" (click)="customerToDelete = null">
@@ -215,17 +309,95 @@ import { Customer } from '../../models/customer.model';
       }
     }
 
+    .unbilled-cell { white-space: nowrap; }
+    .unbilled-hours {
+      font-weight: $font-weight-bold;
+      color: $color-warning;
+    }
+
     .modal-overlay { @include modal-overlay; }
     .modal-content {
       @include modal-content;
 
       p { margin: $spacing-base 0 $spacing-xl 0; color: $color-text-secondary; }
     }
+    .modal-content-wide {
+      max-width: 640px;
+      width: 100%;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+    }
+    .modal-top-bar {
+      @include flex-between;
+      padding: $spacing-xl;
+      border-bottom: $border-width-thin solid $color-border;
+      flex-shrink: 0;
+
+      h3 { margin: 0; font-size: $font-size-lg; font-weight: $font-weight-bold; color: $color-text-primary; }
+
+      .modal-close {
+        background: none;
+        border: none;
+        font-size: $font-size-lg;
+        cursor: pointer;
+        color: $color-text-muted;
+        padding: $spacing-xs;
+        line-height: 1;
+        &:hover { color: $color-text-primary; }
+      }
+    }
+    .modal-scroll-body {
+      padding: $spacing-xl;
+      overflow-y: auto;
+    }
+    .no-unbilled {
+      text-align: center;
+      padding: $spacing-2xl 0;
+      p { color: $color-text-muted; }
+    }
+    .invoice-doc-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: $spacing-xl;
+      padding-bottom: $spacing-base;
+      border-bottom: 2px solid $color-primary;
+
+      h4 { font-size: $font-size-base; font-weight: $font-weight-bold; color: $color-primary; margin: 0 0 $spacing-xs 0; }
+      p { margin: 0; color: $color-text-secondary; font-size: $font-size-sm; }
+      .bill-to-label { font-size: $font-size-xs; text-transform: uppercase; letter-spacing: $letter-spacing-wide; color: $color-text-muted; display: block; margin-bottom: $spacing-xs; }
+      .customer-name { font-weight: $font-weight-semibold; font-size: $font-size-base; color: $color-text-primary; }
+    }
+    .invoice-doc-meta {
+      display: flex;
+      gap: $spacing-xl;
+      margin-bottom: $spacing-xl;
+
+      .meta-item { display: flex; flex-direction: column; gap: $spacing-xs; }
+      .meta-label { font-size: $font-size-xs; text-transform: uppercase; letter-spacing: $letter-spacing-wide; color: $color-text-muted; }
+      .meta-value { font-weight: $font-weight-semibold; font-size: $font-size-sm; }
+      .meta-pending { color: $color-text-muted; font-style: italic; font-weight: $font-weight-normal; }
+    }
+    .invoice-doc-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: $spacing-xl;
+
+      th, td { padding: $spacing-md $spacing-base; text-align: left; border-bottom: $border-width-thin solid $color-border; font-size: $font-size-sm; }
+      th { font-weight: $font-weight-semibold; color: $color-text-secondary; font-size: $font-size-xs; text-transform: uppercase; letter-spacing: $letter-spacing-wide; background: $color-gray-50; }
+      .text-right { text-align: right; }
+      .subtotal-row td { font-weight: $font-weight-semibold; }
+      .total-row td { font-size: $font-size-base; font-weight: $font-weight-bold; border-top: 2px solid $color-primary; border-bottom: none; }
+    }
     .modal-actions {
       display: flex;
       gap: $spacing-sm;
       justify-content: flex-end;
+      padding-top: $spacing-base;
+      border-top: $border-width-thin solid $color-border-light;
     }
+    .btn-primary { @include button-primary; text-decoration: none; }
 
     .loading-state {
       text-align: center;
@@ -256,6 +428,8 @@ import { Customer } from '../../models/customer.model';
 })
 export class CustomerListComponent implements OnInit {
   private customerService = inject(CustomerService);
+  private timeEntryService = inject(TimeEntryService);
+  private projectService = inject(ProjectService);
 
   customers: Customer[] = [];
   filteredCustomers: Customer[] = [];
@@ -263,12 +437,81 @@ export class CustomerListComponent implements OnInit {
   loading = true;
   customerToDelete: Customer | null = null;
 
+  private unbilledHoursMap = new Map<string, number>();
+  private projectMap = new Map<string, Project>();
+
+  previewCustomer: Customer | null = null;
+  previewLoading = false;
+  previewLineItems: { projectName: string; hours: number; rate: number; amount: number }[] = [];
+  previewTotal = 0;
+  previewIssueDate = '';
+  previewDueDate = '';
+
   ngOnInit(): void {
+    this.projectService.getProjects().subscribe(projects => {
+      projects.forEach(p => this.projectMap.set(p.id, p));
+    });
+
+    this.timeEntryService.getTimeEntries().subscribe(entries => {
+      this.unbilledHoursMap.clear();
+      for (const e of entries.filter(e => e.status === 'unbilled')) {
+        this.unbilledHoursMap.set(e.customerId, Math.round(((this.unbilledHoursMap.get(e.customerId) || 0) + e.durationHours) * 100) / 100);
+      }
+    });
+
     this.customerService.getCustomers().subscribe(customers => {
       this.customers = customers;
       this.filterCustomers();
       this.loading = false;
     });
+  }
+
+  getUnbilledHours(customerId: string): number {
+    return this.unbilledHoursMap.get(customerId) || 0;
+  }
+
+  openPreview(customer: Customer): void {
+    this.previewCustomer = customer;
+    this.previewLoading = true;
+    this.previewLineItems = [];
+    this.previewTotal = 0;
+
+    const today = new Date();
+    this.previewIssueDate = this.formatDate(today.toISOString().split('T')[0]);
+    const due = new Date(today);
+    due.setDate(due.getDate() + 30);
+    this.previewDueDate = this.formatDate(due.toISOString().split('T')[0]);
+
+    this.timeEntryService.getUnbilledByCustomer(customer.id).subscribe(entries => {
+      const byProject = new Map<string, number>();
+      for (const entry of entries) {
+        byProject.set(entry.projectId, (byProject.get(entry.projectId) || 0) + entry.durationHours);
+      }
+
+      this.previewLineItems = [];
+      this.previewTotal = 0;
+
+      byProject.forEach((hours, projectId) => {
+        const project = this.projectMap.get(projectId);
+        const rate = project?.hourlyRate || customer.hourlyRate || 0;
+        const roundedHours = Math.round(hours * 100) / 100;
+        const amount = Math.round(roundedHours * rate * 100) / 100;
+        this.previewTotal += amount;
+        this.previewLineItems.push({ projectName: project?.projectName || projectId, hours: roundedHours, rate, amount });
+      });
+
+      this.previewTotal = Math.round(this.previewTotal * 100) / 100;
+      this.previewLoading = false;
+    });
+  }
+
+  closePreview(): void {
+    this.previewCustomer = null;
+  }
+
+  private formatDate(dateStr: string): string {
+    const [year, month, day] = dateStr.split('-');
+    return `${month}/${day}/${year}`;
   }
 
   filterCustomers(): void {
