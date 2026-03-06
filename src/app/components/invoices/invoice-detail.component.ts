@@ -32,7 +32,7 @@ import autoTable from 'jspdf-autotable';
       <div *ngIf="!loading && invoice" class="invoice-card">
         <div class="invoice-header">
           <div class="invoice-from">
-            <h3>Fractional Tech Advisory</h3>
+            <img src="assets/nta-logo.jpg" alt="NTA Logo" class="invoice-logo">
             <p>Jack Notarangelo</p>
           </div>
           <div class="invoice-to">
@@ -161,6 +161,13 @@ import autoTable from 'jspdf-autotable';
       margin-bottom: $spacing-2xl;
       padding-bottom: $spacing-xl;
       border-bottom: 2px solid $color-primary;
+
+      .invoice-logo {
+        max-height: 48px;
+        width: auto;
+        display: block;
+        margin-bottom: $spacing-xs;
+      }
 
       h3 {
         font-size: $font-size-xl;
@@ -338,21 +345,36 @@ export class InvoiceDetailComponent implements OnInit {
     await this.invoiceService.updateInvoiceStatus(this.invoice.id, status);
   }
 
-  downloadPDF(): void {
+  async downloadPDF(): Promise<void> {
     if (!this.invoice) return;
 
     const doc = new jsPDF();
     const invoice = this.invoice;
 
-    // Header
-    doc.setFontSize(20);
-    doc.setTextColor(30, 58, 138);
-    doc.text('INVOICE', 14, 22);
+    // Load logo
+    let logoY = 37;
+    try {
+      const response = await fetch('assets/nta-logo.jpg');
+      const blob = await response.blob();
+      const base64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
+      });
+      // Draw logo: max 40mm wide, proportional height, top-left
+      doc.addImage(base64, 'JPEG', 14, 14, 40, 14);
+      logoY = 32;
+    } catch {
+      // Logo unavailable — fall back to text header
+      doc.setFontSize(20);
+      doc.setTextColor(30, 58, 138);
+      doc.text('INVOICE', 14, 22);
+      logoY = 32;
+    }
 
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text('Fractional Tech Advisory', 14, 32);
-    doc.text('Jack Notarangelo', 14, 37);
+    doc.text('Jack Notarangelo', 14, logoY + 5);
 
     // Invoice details (right side)
     doc.setFontSize(10);

@@ -115,7 +115,7 @@ import { Project } from '../../models/project.model';
               <div class="invoice-card">
                 <div class="invoice-header">
                   <div class="invoice-from">
-                    <h3>Fractional Tech Advisory</h3>
+                    <img src="assets/nta-logo.jpg" alt="NTA Logo" class="invoice-logo">
                     <p>Jack Notarangelo</p>
                   </div>
                   <div class="invoice-to">
@@ -376,6 +376,7 @@ import { Project } from '../../models/project.model';
       padding-bottom: $spacing-xl;
       border-bottom: 2px solid $color-primary;
 
+      .invoice-logo { max-height: 48px; width: auto; display: block; margin-bottom: $spacing-xs; }
       h3 { font-size: $font-size-xl; font-weight: $font-weight-bold; color: $color-primary; margin: 0 0 $spacing-xs 0; }
       h4 { font-size: $font-size-sm; text-transform: uppercase; letter-spacing: $letter-spacing-wide; color: $color-text-muted; margin: 0 0 $spacing-xs 0; }
       p { margin: 0; color: $color-text-secondary; }
