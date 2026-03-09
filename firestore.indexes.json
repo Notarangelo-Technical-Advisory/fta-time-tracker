@@ -38,7 +38,8 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "customerId", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "projectName", "order": "ASCENDING" }
       ]
     },
     {
