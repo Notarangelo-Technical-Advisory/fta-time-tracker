@@ -276,7 +276,7 @@ export class TimeEntryFormComponent implements OnInit {
     this.form = this.fb.group({
       date: [today, Validators.required],
       startTime: [currentHour, Validators.required],
-      endTime: ['', Validators.required],
+      endTime: [currentHour, Validators.required],
       customerId: ['', Validators.required],
       projectId: ['', Validators.required],
       description: ['']
