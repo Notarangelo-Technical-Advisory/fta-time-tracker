@@ -91,20 +91,25 @@ import autoTable from 'jspdf-autotable';
           <thead>
             <tr>
               <th>Project</th>
-              <th>Description</th>
+              <th>Date</th>
               <th>Hours</th>
               <th>Rate</th>
               <th class="text-right">Amount</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let item of invoice.lineItems">
-              <td>{{ item.projectName }}</td>
-              <td class="desc-cell">{{ item.description || '—' }}</td>
-              <td>{{ item.hours }}</td>
-              <td>\${{ item.rate.toFixed(2) }}/hr</td>
-              <td class="text-right">\${{ item.amount.toFixed(2) }}</td>
-            </tr>
+            <ng-container *ngFor="let item of invoice.lineItems">
+              <tr>
+                <td>{{ item.projectName }}</td>
+                <td class="date-cell">{{ getDatePart(item.description) }}</td>
+                <td>{{ item.hours }}</td>
+                <td>\${{ item.rate.toFixed(2) }}/hr</td>
+                <td class="text-right">\${{ item.amount.toFixed(2) }}</td>
+              </tr>
+              <tr *ngIf="getDescriptionPart(item.description)" class="desc-row">
+                <td colspan="5" class="desc-cell">{{ getDescriptionPart(item.description) }}</td>
+              </tr>
+            </ng-container>
           </tbody>
         </table>
 
@@ -276,7 +281,20 @@ import autoTable from 'jspdf-autotable';
       }
 
       .text-right { text-align: right; }
-      .desc-cell { color: $color-text-secondary; font-size: $font-size-sm; max-width: 200px; }
+      .date-cell { white-space: nowrap; color: $color-text-secondary; font-size: $font-size-sm; }
+
+      .desc-row td {
+        padding-top: 0;
+        padding-bottom: $spacing-md;
+        border-bottom: $border-width-thin solid $color-border;
+      }
+
+      .desc-cell {
+        color: $color-text-secondary;
+        font-size: $font-size-sm;
+        font-style: italic;
+        padding-left: $spacing-2xl;
+      }
 
       .total-row td {
         font-size: $font-size-lg;
@@ -388,6 +406,18 @@ export class InvoiceDetailComponent implements OnInit {
     }
   }
 
+  getDatePart(description?: string): string {
+    if (!description) return '—';
+    const sep = description.indexOf(' — ');
+    return sep === -1 ? description : description.slice(0, sep);
+  }
+
+  getDescriptionPart(description?: string): string {
+    if (!description) return '';
+    const sep = description.indexOf(' — ');
+    return sep === -1 ? '' : description.slice(sep + 3);
+  }
+
   formatDate(dateStr: string): string {
     const [year, month, day] = dateStr.split('-');
     return `${month}/${day}/${year}`;
@@ -482,23 +512,40 @@ export class InvoiceDetailComponent implements OnInit {
     doc.setTextColor(100);
     doc.text('DETAILS', 14, summaryEndY);
 
-    // Details table
-    const tableData = invoice.lineItems.map(item => [
-      item.projectName,
-      item.description || '—',
-      String(item.hours),
-      `$${item.rate.toFixed(2)}/hr`,
-      `$${item.amount.toFixed(2)}`
-    ]);
+    // Details table — main row per item, then optional description sub-row
+    const detailsBody: string[][] = [];
+    const descRowIndices = new Set<number>();
+    for (const item of invoice.lineItems) {
+      const datePart = this.getDatePart(item.description);
+      const descPart = this.getDescriptionPart(item.description);
+      detailsBody.push([item.projectName, datePart, String(item.hours), `$${item.rate.toFixed(2)}/hr`, `$${item.amount.toFixed(2)}`]);
+      if (descPart) {
+        descRowIndices.add(detailsBody.length);
+        detailsBody.push(['', descPart, '', '', '']);
+      }
+    }
 
     autoTable(doc, {
       startY: summaryEndY + 5,
-      head: [['Project', 'Description', 'Hours', 'Rate', 'Amount']],
-      body: tableData,
+      head: [['Project', 'Date', 'Hours', 'Rate', 'Amount']],
+      body: detailsBody,
       theme: 'striped',
       headStyles: { fillColor: [30, 58, 138], textColor: [255, 255, 255], fontStyle: 'bold' },
       styles: { fontSize: 10, cellPadding: 5 },
-      columnStyles: { 4: { halign: 'right' } }
+      columnStyles: { 4: { halign: 'right' } },
+      didParseCell: (data) => {
+        if (data.section === 'body' && descRowIndices.has(data.row.index)) {
+          data.cell.styles.fontStyle = 'italic';
+          data.cell.styles.textColor = [100, 116, 139];
+          data.cell.styles.fontSize = 9;
+          data.cell.styles.fillColor = [255, 255, 255];
+          if (data.column.index === 1) {
+            data.cell.styles.cellPadding = { top: 0, right: 5, bottom: 4, left: 14 };
+          } else {
+            data.cell.styles.cellPadding = { top: 0, right: 5, bottom: 4, left: 5 };
+          }
+        }
+      }
     });
 
     // Notes

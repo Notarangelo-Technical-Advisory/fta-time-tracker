@@ -189,20 +189,25 @@ import { Project } from '../../models/project.model';
             <thead>
               <tr>
                 <th>Project</th>
-                <th>Description</th>
+                <th>Date</th>
                 <th>Hours</th>
                 <th>Rate</th>
                 <th class="amount-cell">Amount</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let item of previewLineItems">
-                <td>{{ item.projectName }}</td>
-                <td class="desc-cell">{{ item.description || '—' }}</td>
-                <td>{{ item.hours }}</td>
-                <td>\${{ item.rate }}/hr</td>
-                <td class="amount-cell">\${{ item.amount.toFixed(2) }}</td>
-              </tr>
+              <ng-container *ngFor="let item of previewLineItems">
+                <tr>
+                  <td>{{ item.projectName }}</td>
+                  <td class="date-cell">{{ getDatePart(item.description) }}</td>
+                  <td>{{ item.hours }}</td>
+                  <td>\${{ item.rate }}/hr</td>
+                  <td class="amount-cell">\${{ item.amount.toFixed(2) }}</td>
+                </tr>
+                <tr *ngIf="getDescriptionPart(item.description)" class="desc-row">
+                  <td colspan="5" class="desc-cell">{{ getDescriptionPart(item.description) }}</td>
+                </tr>
+              </ng-container>
             </tbody>
           </table>
 
@@ -408,12 +413,20 @@ import { Project } from '../../models/project.model';
 
     .time-cell { font-family: monospace; font-size: $font-size-sm; white-space: nowrap; }
     .hours-cell { font-weight: $font-weight-bold; color: $color-primary; }
+    .date-cell { white-space: nowrap; color: $color-text-muted; font-size: $font-size-sm; }
+
+    .desc-row td {
+      padding-top: 0;
+      padding-bottom: $spacing-md;
+      border-bottom: $border-width-thin solid $color-border;
+      background: inherit;
+    }
+
     .desc-cell {
-      max-width: 200px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
       color: $color-text-muted;
+      font-size: $font-size-sm;
+      font-style: italic;
+      padding-left: $spacing-2xl;
     }
     .amount-cell { font-weight: $font-weight-bold; text-align: right; }
 
@@ -640,6 +653,18 @@ export class InvoiceGenerateComponent implements OnInit {
 
   getProjectName(projectId: string): string {
     return this.projectMap.get(projectId)?.projectName || projectId;
+  }
+
+  getDatePart(description?: string): string {
+    if (!description) return '—';
+    const sep = description.indexOf(' — ');
+    return sep === -1 ? description : description.slice(0, sep);
+  }
+
+  getDescriptionPart(description?: string): string {
+    if (!description) return '';
+    const sep = description.indexOf(' — ');
+    return sep === -1 ? '' : description.slice(sep + 3);
   }
 
   formatDate(dateStr: string): string {
