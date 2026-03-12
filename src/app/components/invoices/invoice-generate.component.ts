@@ -2,6 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { combineLatest } from 'rxjs';
 import { InvoiceService } from '../../services/invoice.service';
 import { TimeEntryService } from '../../services/time-entry.service';
 import { CustomerService } from '../../services/customer.service';
@@ -615,12 +616,12 @@ export class InvoiceGenerateComponent implements OnInit {
     this.loadingEntries = true;
     this.selectedEntries = [];
 
-    this.projectService.getProjectsByCustomer(this.selectedCustomer.id).subscribe(projects => {
+    combineLatest([
+      this.projectService.getProjectsByCustomer(this.selectedCustomer.id),
+      this.timeEntryService.getUnbilledByCustomer(this.selectedCustomer.id)
+    ]).subscribe(([projects, entries]) => {
       this.projectMap.clear();
       projects.forEach(p => this.projectMap.set(p.id, p));
-    });
-
-    this.timeEntryService.getUnbilledByCustomer(this.selectedCustomer.id).subscribe(entries => {
       this.unbilledEntries = entries;
       this.loadingEntries = false;
     });
