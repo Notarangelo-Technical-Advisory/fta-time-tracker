@@ -26,6 +26,10 @@ export const routes: Routes = [
   { path: 'invoices/generate', loadComponent: () => import('./components/invoices/invoice-generate.component').then(m => m.InvoiceGenerateComponent), canActivate: [authGuard, adminGuard] },
   { path: 'invoices/:id', loadComponent: () => import('./components/invoices/invoice-detail.component').then(m => m.InvoiceDetailComponent), canActivate: [authGuard, adminGuard] },
 
+  { path: 'status-reports', loadComponent: () => import('./components/status-reports/status-report-list.component').then(m => m.StatusReportListComponent), canActivate: [authGuard, adminGuard] },
+  { path: 'status-reports/generate', loadComponent: () => import('./components/status-reports/status-report-generate.component').then(m => m.StatusReportGenerateComponent), canActivate: [authGuard, adminGuard] },
+  { path: 'status-reports/:id', loadComponent: () => import('./components/status-reports/status-report-detail.component').then(m => m.StatusReportDetailComponent), canActivate: [authGuard, adminGuard] },
+
   { path: 'users', loadComponent: () => import('./components/users/user-list.component').then(m => m.UserListComponent), canActivate: [authGuard, adminGuard] },
 
   { path: 'portal', loadComponent: () => import('./components/portal/portal-dashboard.component').then(m => m.PortalDashboardComponent), canActivate: [authGuard, customerGuard] },

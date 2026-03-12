@@ -5,6 +5,7 @@ import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
 import { provideAnalytics, getAnalytics, ScreenTrackingService, UserTrackingService } from '@angular/fire/analytics';
 import { provideAuth, getAuth, connectAuthEmulator } from '@angular/fire/auth';
 import { provideFirestore, getFirestore, connectFirestoreEmulator } from '@angular/fire/firestore';
+import { provideFunctions, getFunctions } from '@angular/fire/functions';
 import { ReactiveFormsModule } from '@angular/forms';
 
 import { routes } from './app.routes';
@@ -30,6 +31,7 @@ export const appConfig: ApplicationConfig = {
       }
       return firestore;
     }),
+    provideFunctions(() => getFunctions()),
     ...(environment.useEmulators ? [] : [
       provideAnalytics(() => getAnalytics()),
       importProvidersFrom(ScreenTrackingService, UserTrackingService),

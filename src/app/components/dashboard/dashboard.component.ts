@@ -57,6 +57,11 @@ import { Invoice } from '../../models/invoice.model';
               <span class="action-label">Generate Invoice</span>
               <span class="action-desc">Select a customer, pick unbilled entries, then review &amp; generate</span>
             </a>
+            <a routerLink="/status-reports/generate" class="action-card">
+              <span class="action-icon">&#128196;</span>
+              <span class="action-label">Status Report</span>
+              <span class="action-desc">AI-generated report from billed or unbilled entries</span>
+            </a>
             <a routerLink="/customers/new" class="action-card">
               <span class="action-icon">&#64;</span>
               <span class="action-label">Add Customer</span>
@@ -229,11 +234,11 @@ import { Invoice } from '../../models/invoice.model';
 
     .quick-actions {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: $spacing-base;
+      grid-template-columns: repeat(5, 1fr);
+      gap: $spacing-sm;
 
       @media (max-width: $breakpoint-tablet) {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(3, 1fr);
       }
     }
 
@@ -241,11 +246,11 @@ import { Invoice } from '../../models/invoice.model';
       background: $color-white;
       border-radius: $card-border-radius;
       box-shadow: $card-shadow;
-      padding: $spacing-xl;
+      padding: $spacing-base $spacing-sm;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: $spacing-sm;
+      gap: $spacing-xs;
       text-decoration: none;
       transition: $transition-all;
       border: $border-width-thin solid transparent;
@@ -257,15 +262,15 @@ import { Invoice } from '../../models/invoice.model';
       }
 
       .action-icon {
-        width: 40px;
-        height: 40px;
+        width: 36px;
+        height: 36px;
         border-radius: 50%;
         background: $color-primary-light;
         color: $color-primary;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: $font-size-xl;
+        font-size: $font-size-lg;
         font-weight: $font-weight-bold;
       }
 
@@ -273,6 +278,7 @@ import { Invoice } from '../../models/invoice.model';
         font-weight: $font-weight-semibold;
         color: $color-text-primary;
         font-size: $font-size-sm;
+        text-align: center;
       }
 
       .action-desc {
@@ -360,7 +366,7 @@ import { Invoice } from '../../models/invoice.model';
 
     @include tablet {
       .summary-cards { grid-template-columns: repeat(2, 1fr); }
-      .quick-actions { grid-template-columns: repeat(2, 1fr); }
+      .quick-actions { grid-template-columns: repeat(3, 1fr); }
       .data-table { font-size: $font-size-sm; }
     }
   `]

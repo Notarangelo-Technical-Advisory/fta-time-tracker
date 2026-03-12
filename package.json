@@ -25,6 +25,7 @@
     "@angular/platform-browser": "^19.2.18",
     "@angular/platform-browser-dynamic": "^19.2.18",
     "@angular/router": "^19.2.18",
+    "docx": "^9.6.1",
     "firebase": "^11.10.0",
     "jspdf": "^2.5.0",
     "jspdf-autotable": "^3.8.0",

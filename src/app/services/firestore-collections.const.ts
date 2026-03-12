@@ -3,6 +3,7 @@ export const CUSTOMERS = 'customers';
 export const PROJECTS = 'projects';
 export const TIME_ENTRIES = 'timeEntries';
 export const INVOICES = 'invoices';
+export const STATUS_REPORTS = 'statusReports';
 export const INVITES = 'invites';
 
 export const COLLECTIONS = {
@@ -11,5 +12,6 @@ export const COLLECTIONS = {
   PROJECTS,
   TIME_ENTRIES,
   INVOICES,
+  STATUS_REPORTS,
   INVITES
 };
