@@ -842,7 +842,7 @@ export class StatusReportGenerateComponent implements OnInit {
         reader.onload = () => res(reader.result as string);
         reader.readAsDataURL(blob);
       });
-      doc.addImage(base64, 'JPEG', 14, 14, 40, 14);
+      doc.addImage(base64, 'JPEG', 14, 14, 29, 14);
     } catch {
       doc.setFontSize(16);
       doc.setTextColor(30, 58, 138);
