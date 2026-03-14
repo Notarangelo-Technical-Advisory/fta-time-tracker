@@ -29,6 +29,10 @@ import { StatusReport, StatusReportSection } from '../../models/status-report.mo
       <div *ngIf="!loading && report">
         <!-- Report header card -->
         <div class="meta-card">
+          <div class="meta-header">
+            <img src="assets/nta-logo.jpg" alt="Notarangelo Technical Advisory" class="report-logo" />
+            <h2 class="report-title">Status Report</h2>
+          </div>
           <div class="meta-grid">
             <div class="meta-item">
               <span class="meta-label">Report Number</span>
@@ -144,6 +148,30 @@ import { StatusReport, StatusReportSection } from '../../models/status-report.mo
       padding: $spacing-xl;
       margin-bottom: $spacing-xl;
     }
+    .meta-header {
+      display: flex;
+      align-items: center;
+      gap: $spacing-base;
+      margin-bottom: $spacing-xl;
+      padding-bottom: $spacing-base;
+      border-bottom: $border-width-thin solid $color-border-light;
+    }
+
+    .report-logo {
+      height: 40px;
+      width: auto;
+      object-fit: contain;
+    }
+
+    .report-title {
+      font-size: $font-size-xl;
+      font-weight: $font-weight-bold;
+      color: $color-primary;
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: $letter-spacing-wide;
+    }
+
     .meta-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -517,10 +545,24 @@ export class StatusReportDetailComponent implements OnInit {
   }
 
   private async exportDOCX(report: StatusReport): Promise<void> {
-    const { Document, Packer, Paragraph, TextRun, HeadingLevel, ShadingType } =
+    const { Document, Packer, Paragraph, TextRun, ImageRun, HeadingLevel, ShadingType } =
       await import('docx');
 
     const children: InstanceType<typeof Paragraph>[] = [];
+
+    // Logo
+    try {
+      const logoResponse = await fetch('assets/nta-logo.jpg');
+      const logoBuffer = await logoResponse.arrayBuffer();
+      children.push(new Paragraph({
+        children: [
+          new ImageRun({ data: logoBuffer, transformation: { width: 160, height: 56 }, type: 'jpg' }),
+        ],
+        spacing: { after: 120 }
+      }));
+    } catch {
+      // fallback: no logo
+    }
 
     // Title
     children.push(new Paragraph({
