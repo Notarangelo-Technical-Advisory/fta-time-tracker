@@ -391,6 +391,7 @@ export class StatusReportDetailComponent implements OnInit {
     const section = this.report.sections[sectionIdx];
     const arr = type === 'activity' ? section.activities : section.outcomes;
     arr[itemIdx] = this.editValue.trim();
+    if (type === 'outcome') this.sortOutcomes(section);
     this.editKey = null;
     this.editValue = '';
     await this.statusReportService.updateSections(this.report.id, this.report.sections);
@@ -414,6 +415,13 @@ export class StatusReportDetailComponent implements OnInit {
     arr.push('');
     this.editKey = `${sectionIdx}-${type}-${newIdx}`;
     this.editValue = '';
+  }
+
+  private sortOutcomes(section: StatusReportSection): void {
+    section.outcomes.sort((a, b) => {
+      const rank = (s: string) => s.startsWith('Actual:') ? 0 : s.startsWith('Potential:') ? 1 : 2;
+      return rank(a) - rank(b);
+    });
   }
 
   async updateStatus(status: StatusReport['status']): Promise<void> {
