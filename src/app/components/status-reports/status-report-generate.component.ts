@@ -829,8 +829,7 @@ export class StatusReportGenerateComponent implements OnInit {
   }): Promise<void> {
     const jsPDFModule = await import('jspdf');
     const jsPDF = jsPDFModule.default ?? jsPDFModule;
-    const autoTableModule = await import('jspdf-autotable') as any;
-    const autoTable = autoTableModule.default ?? autoTableModule;
+    await import('jspdf-autotable');
 
     const doc = new jsPDF();
 
@@ -872,7 +871,7 @@ export class StatusReportGenerateComponent implements OnInit {
       if (yPos > 240) { doc.addPage(); yPos = 14; }
 
       // Project heading band
-      autoTable(doc, {
+      (doc as any).autoTable({
         startY: yPos,
         head: [[section.projectName]],
         body: [],

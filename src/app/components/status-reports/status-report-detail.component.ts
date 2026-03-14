@@ -450,8 +450,7 @@ export class StatusReportDetailComponent implements OnInit {
   private async exportPDF(report: StatusReport): Promise<void> {
     const jsPDFModule = await import('jspdf');
     const jsPDF = jsPDFModule.default ?? jsPDFModule;
-    const autoTableModule = await import('jspdf-autotable') as any;
-    const autoTable = autoTableModule.default ?? autoTableModule;
+    await import('jspdf-autotable');
 
     const doc = new jsPDF();
 
@@ -491,7 +490,7 @@ export class StatusReportDetailComponent implements OnInit {
     for (const section of report.sections) {
       if (yPos > 240) { doc.addPage(); yPos = 14; }
 
-      autoTable(doc, {
+      (doc as any).autoTable({
         startY: yPos,
         head: [[section.projectName]],
         body: [],
