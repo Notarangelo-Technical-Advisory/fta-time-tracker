@@ -12,6 +12,7 @@ import { TimeEntry } from '../../models/time-entry.model';
 import { Customer } from '../../models/customer.model';
 import { Project } from '../../models/project.model';
 import { StatusReportSection } from '../../models/status-report.model';
+import { OutcomeRecord } from '../../models/outcome-record.model';
 
 @Component({
   selector: 'app-status-report-generate',
@@ -638,6 +639,7 @@ export class StatusReportGenerateComponent implements OnInit {
   exportType: 'pdf' | 'docx' = 'pdf';
 
   generatedSections: StatusReportSection[] = [];
+  priorOutcomes: OutcomeRecord[] = [];
 
   get totalFilteredHours(): number {
     return Math.round(this.filteredEntries.reduce((s, e) => s + e.durationHours, 0) * 100) / 100;
@@ -766,10 +768,12 @@ export class StatusReportGenerateComponent implements OnInit {
     this.error = '';
 
     try {
+      this.priorOutcomes = await this.statusReportService.getOutcomesByCustomer(this.selectedCustomer.id);
       this.generatedSections = await this.statusReportService.generateWithAI(
         this.selectedCustomer.companyName,
         this.selectedEntries,
-        this.projectMap
+        this.projectMap,
+        this.priorOutcomes
       );
       this.phase = 'result';
     } catch (err: any) {
@@ -791,6 +795,9 @@ export class StatusReportGenerateComponent implements OnInit {
         this.selectedEntries,
         this.generatedSections
       );
+
+      // Update the cumulative outcomes collection with the merged outcomes from this report
+      await this.statusReportService.upsertOutcomes(this.selectedCustomer.id, this.generatedSections);
 
       // Build a minimal report object to pass to the export
       const report = {

@@ -15,9 +15,15 @@ interface StatusReportSection {
   outcomes: string[];
 }
 
+interface PriorOutcomeInput {
+  projectName: string;
+  outcomes: string[];
+}
+
 interface GenerateStatusReportRequest {
   customerName: string;
   entries: TimeEntryInput[];
+  priorOutcomes: PriorOutcomeInput[];
 }
 
 interface GenerateStatusReportResponse {
@@ -36,7 +42,7 @@ export const generateStatusReport = onCall<GenerateStatusReportRequest>(
       throw new HttpsError('failed-precondition', 'Anthropic API key not configured');
     }
 
-    const { customerName, entries } = request.data;
+    const { customerName, entries, priorOutcomes } = request.data;
 
     if (!entries || entries.length === 0) {
       throw new HttpsError('invalid-argument', 'No time entries provided');
@@ -63,14 +69,31 @@ export const generateStatusReport = onCall<GenerateStatusReportRequest>(
       }
     }
 
+    // Build prior outcomes context if available
+    let priorOutcomesText = '';
+    if (priorOutcomes && priorOutcomes.length > 0) {
+      priorOutcomesText = '\n\nPreviously tracked outcomes for this client (carry these forward and update as appropriate):\n';
+      for (const po of priorOutcomes) {
+        priorOutcomesText += `\nProject: ${po.projectName}\n`;
+        for (const o of po.outcomes) {
+          priorOutcomesText += `  - ${o}\n`;
+        }
+      }
+      priorOutcomesText += '\nInstructions for prior outcomes:\n';
+      priorOutcomesText += '- Include ALL prior outcomes in the relevant project section.\n';
+      priorOutcomesText += '- If a prior "Potential:" outcome has now been achieved based on the new time entries, change its prefix to "Actual:" and update the wording if needed.\n';
+      priorOutcomesText += '- Add 1-3 NEW outcome bullets based on the work done in this reporting period.\n';
+      priorOutcomesText += '- Do not drop prior outcomes unless they are clearly superseded or no longer relevant.\n';
+    }
+
     const prompt = `You are writing a professional client status report for a fractional technology advisory firm.
 
 Client: ${customerName}
 
-Time entries for this reporting period:${entriesText}
+Time entries for this reporting period:${entriesText}${priorOutcomesText}
 For each project listed above, generate:
 1. 3-5 activity bullets describing what was done (past tense, professional, start each with a past-tense verb)
-2. 2-3 outcome bullets — prefix each with "Actual:" for outcomes already achieved, or "Potential:" for future outcomes enabled by this work
+2. Outcome bullets — prefix each with "Actual:" for outcomes already achieved, or "Potential:" for future outcomes enabled by this work${priorOutcomes && priorOutcomes.length > 0 ? ' (incorporate prior outcomes as instructed above)' : ' (2-3 bullets)'}
 
 Return ONLY valid JSON in this exact format, with no markdown fences or extra text:
 {

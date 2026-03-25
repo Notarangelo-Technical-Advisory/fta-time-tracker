@@ -5,6 +5,7 @@ export const TIME_ENTRIES = 'timeEntries';
 export const INVOICES = 'invoices';
 export const STATUS_REPORTS = 'statusReports';
 export const INVITES = 'invites';
+export const OUTCOMES = 'outcomes';
 
 export const COLLECTIONS = {
   USER_PROFILES,
@@ -13,5 +14,6 @@ export const COLLECTIONS = {
   TIME_ENTRIES,
   INVOICES,
   STATUS_REPORTS,
-  INVITES
+  INVITES,
+  OUTCOMES
 };

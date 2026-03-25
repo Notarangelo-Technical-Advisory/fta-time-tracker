@@ -9,12 +9,14 @@ import {
   updateDoc,
   query,
   orderBy,
-  getDocs
+  getDocs,
+  where
 } from '@angular/fire/firestore';
 import { Functions, httpsCallable } from '@angular/fire/functions';
 import { Observable } from 'rxjs';
-import { STATUS_REPORTS } from './firestore-collections.const';
+import { STATUS_REPORTS, OUTCOMES } from './firestore-collections.const';
 import { StatusReport, StatusReportSection } from '../models/status-report.model';
+import { OutcomeRecord } from '../models/outcome-record.model';
 import { TimeEntry } from '../models/time-entry.model';
 import { Project } from '../models/project.model';
 
@@ -28,6 +30,7 @@ interface GenerateStatusReportRequest {
     status: string;
     invoiceId?: string;
   }>;
+  priorOutcomes: Array<{ projectName: string; outcomes: string[] }>;
 }
 
 interface GenerateStatusReportResponse {
@@ -53,7 +56,8 @@ export class StatusReportService {
   async generateWithAI(
     customerName: string,
     entries: TimeEntry[],
-    projectMap: Map<string, Project>
+    projectMap: Map<string, Project>,
+    priorOutcomes: OutcomeRecord[]
   ): Promise<StatusReportSection[]> {
     const callable = httpsCallable<GenerateStatusReportRequest, GenerateStatusReportResponse>(
       this.functions,
@@ -69,8 +73,41 @@ export class StatusReportService {
       invoiceId: e.invoiceId
     }));
 
-    const result = await callable({ customerName, entries: entriesInput });
+    const priorOutcomesInput = priorOutcomes.map(r => ({
+      projectName: r.projectName,
+      outcomes: r.outcomes
+    }));
+
+    const result = await callable({ customerName, entries: entriesInput, priorOutcomes: priorOutcomesInput });
     return result.data.sections;
+  }
+
+  async getOutcomesByCustomer(customerId: string): Promise<OutcomeRecord[]> {
+    const ref = collection(this.firestore, OUTCOMES);
+    const q = query(ref, where('customerId', '==', customerId));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as OutcomeRecord));
+  }
+
+  async upsertOutcomes(customerId: string, sections: StatusReportSection[]): Promise<void> {
+    const existing = await this.getOutcomesByCustomer(customerId);
+    const now = new Date();
+
+    for (const section of sections) {
+      const record = existing.find(r => r.projectName === section.projectName);
+      if (record?.id) {
+        const ref = doc(this.firestore, OUTCOMES, record.id);
+        await updateDoc(ref, { outcomes: section.outcomes, updatedAt: now });
+      } else {
+        const ref = collection(this.firestore, OUTCOMES);
+        await addDoc(ref, {
+          customerId,
+          projectName: section.projectName,
+          outcomes: section.outcomes,
+          updatedAt: now
+        });
+      }
+    }
   }
 
   async saveReport(
