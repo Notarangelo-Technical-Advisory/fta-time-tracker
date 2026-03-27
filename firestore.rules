@@ -69,6 +69,11 @@ service cloud.firestore {
       allow read, create, update, delete: if isAdmin();
     }
 
+    // Outcomes - admin full CRUD
+    match /outcomes/{outcomeId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
     // Invites - admin CRUD, unauthenticated read for token validation
     // UUID token (128-bit) acts as the secret, making unguessable
     match /invites/{inviteId} {
