@@ -933,6 +933,15 @@ export class HoursReportComponent implements OnInit, OnDestroy {
         }
       }
 
+      // Total hours label above bar
+      if (w.total > 0) {
+        const topY = chartBottom - (w.total / niceMax) * chartH;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(5.5);
+        doc.setTextColor(44, 62, 80);
+        doc.text(w.total.toFixed(1), bx + barW / 2, topY - 1.5, { align: 'center' });
+      }
+
       // X label (every 2nd if many weeks)
       if (this.weeks.length <= 16 || i % 2 === 0) {
         doc.setFont('helvetica', 'normal');
