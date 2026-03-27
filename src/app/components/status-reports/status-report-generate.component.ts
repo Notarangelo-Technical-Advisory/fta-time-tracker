@@ -167,6 +167,10 @@ import { OutcomeRecord } from '../../models/outcome-record.model';
                 <span class="meta-label">Total Hours</span>
                 <span class="meta-value">{{ selectedHours }}</span>
               </div>
+              <div class="meta-item" *ngIf="avgHoursPerWeek !== null">
+                <span class="meta-label">Avg Hrs/Week (Since Inception)</span>
+                <span class="meta-value">{{ avgHoursPerWeek }} hrs/wk</span>
+              </div>
             </div>
 
             <table class="data-table preview-table">
@@ -662,6 +666,18 @@ export class StatusReportGenerateComponent implements OnInit {
   get periodEnd(): string {
     if (!this.selectedEntries.length) return '';
     return [...this.selectedEntries].map(e => e.date).sort().reverse()[0];
+  }
+
+  get avgHoursPerWeek(): number | null {
+    if (!this.allEntries.length) return null;
+    const dates = this.allEntries.map(e => e.date).sort();
+    const inceptionDate = new Date(dates[0] + 'T00:00:00');
+    const today = new Date();
+    const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+    const weeksElapsed = Math.floor((today.getTime() - inceptionDate.getTime()) / msPerWeek);
+    if (weeksElapsed < 1) return null;
+    const totalHours = this.allEntries.reduce((s, e) => s + e.durationHours, 0);
+    return Math.round((totalHours / weeksElapsed) * 10) / 10;
   }
 
   ngOnInit(): void {
