@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { StatusReportService } from '../../services/status-report.service';
+import { TimeEntryService } from '../../services/time-entry.service';
 import { StatusReport, StatusReportSection } from '../../models/status-report.model';
 
 @Component({
@@ -49,6 +50,10 @@ import { StatusReport, StatusReportSection } from '../../models/status-report.mo
             <div class="meta-item">
               <span class="meta-label">Status</span>
               <span class="status-badge" [ngClass]="report.status">{{ report.status | titlecase }}</span>
+            </div>
+            <div class="meta-item" *ngIf="avgHoursPerWeek !== null">
+              <span class="meta-label">Avg Hrs/Week Since Inception</span>
+              <span class="meta-value">{{ avgHoursPerWeek }} hrs/wk</span>
             </div>
           </div>
         </div>
@@ -352,12 +357,14 @@ import { StatusReport, StatusReportSection } from '../../models/status-report.mo
 })
 export class StatusReportDetailComponent implements OnInit {
   private statusReportService = inject(StatusReportService);
+  private timeEntryService = inject(TimeEntryService);
   private route = inject(ActivatedRoute);
 
   report: StatusReport | null = null;
   loading = true;
   exportingPDF = false;
   exportingDOCX = false;
+  avgHoursPerWeek: number | null = null;
 
   editKey: string | null = null;
   editValue = '';
@@ -369,6 +376,16 @@ export class StatusReportDetailComponent implements OnInit {
     this.statusReportService.getStatusReport(id).subscribe(report => {
       this.report = report;
       this.loading = false;
+      this.timeEntryService.getTimeEntriesByCustomer(report.customerId).subscribe(entries => {
+        if (!entries.length) return;
+        const dates = entries.map(e => e.date).sort();
+        const inceptionDate = new Date(dates[0] + 'T00:00:00');
+        const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+        const weeksElapsed = Math.floor((new Date().getTime() - inceptionDate.getTime()) / msPerWeek);
+        if (weeksElapsed < 1) return;
+        const totalHours = entries.reduce((s, e) => s + e.durationHours, 0);
+        this.avgHoursPerWeek = Math.round((totalHours / weeksElapsed) * 10) / 10;
+      });
     });
   }
 
