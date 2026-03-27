@@ -531,7 +531,14 @@ export class StatusReportDetailComponent implements OnInit {
     doc.text(report.customerName, 165, 29);
     doc.text(`${this.formatDate(report.periodStart)} – ${this.formatDate(report.periodEnd)}`, 165, 36);
 
-    let yPos = 48;
+    if (this.avgHoursPerWeek !== null) {
+      doc.setTextColor(100);
+      doc.text('Avg Hrs/Week:', 140, 43);
+      doc.setTextColor(30);
+      doc.text(`${this.avgHoursPerWeek} hrs/wk (since inception)`, 165, 43);
+    }
+
+    let yPos = this.avgHoursPerWeek !== null ? 55 : 48;
 
     for (const section of report.sections) {
       if (yPos > 240) { doc.addPage(); yPos = 14; }
@@ -638,8 +645,20 @@ export class StatusReportDetailComponent implements OnInit {
           size: 20
         })
       ],
-      spacing: { after: 360 }
+      spacing: { after: 40 }
     }));
+
+    if (this.avgHoursPerWeek !== null) {
+      children.push(new Paragraph({
+        children: [
+          new TextRun({ text: 'Avg Hrs/Week Since Inception: ', bold: true, size: 20 }),
+          new TextRun({ text: `${this.avgHoursPerWeek} hrs/wk`, size: 20 })
+        ],
+        spacing: { after: 360 }
+      }));
+    } else {
+      children.push(new Paragraph({ text: '', spacing: { after: 320 } }));
+    }
 
     for (const section of report.sections) {
       children.push(new Paragraph({
