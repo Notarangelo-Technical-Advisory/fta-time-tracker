@@ -59,27 +59,30 @@ import autoTable from 'jspdf-autotable';
         <table class="line-items-table">
           <thead>
             <tr>
-              <th>Project</th>
               <th>Hours</th>
               <th>Rate</th>
               <th class="text-right">Amount</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let item of invoice.lineItems">
-              <td>{{ item.projectName }}</td>
-              <td>{{ item.hours }}</td>
-              <td>\${{ item.rate.toFixed(2) }}/hr</td>
-              <td class="text-right">\${{ item.amount.toFixed(2) }}</td>
-            </tr>
+            <ng-container *ngFor="let group of groupedLineItems">
+              <tr class="project-header-row">
+                <td colspan="3">{{ group.projectName }}</td>
+              </tr>
+              <tr *ngFor="let item of group.items">
+                <td>{{ item.hours }}</td>
+                <td>\${{ item.rate.toFixed(2) }}/hr</td>
+                <td class="text-right">\${{ item.amount.toFixed(2) }}</td>
+              </tr>
+            </ng-container>
           </tbody>
           <tfoot>
             <tr class="subtotal-row">
-              <td colspan="3">Subtotal</td>
+              <td colspan="2">Subtotal</td>
               <td class="text-right">\${{ invoice.subtotal.toFixed(2) }}</td>
             </tr>
             <tr class="total-row">
-              <td colspan="3">Total</td>
+              <td colspan="2">Total</td>
               <td class="text-right">\${{ invoice.total.toFixed(2) }}</td>
             </tr>
           </tfoot>
@@ -214,6 +217,15 @@ import autoTable from 'jspdf-autotable';
 
       .text-right { text-align: right; }
 
+      .project-header-row td {
+        background: $color-gray-50;
+        font-weight: $font-weight-semibold;
+        color: $color-primary;
+        font-size: $font-size-sm;
+        padding: $spacing-sm $spacing-base;
+        border-bottom: 2px solid $color-primary;
+      }
+
       .subtotal-row td {
         font-weight: $font-weight-semibold;
         border-bottom: $border-width-thin solid $color-border;
@@ -266,6 +278,16 @@ export class PortalInvoiceViewComponent implements OnInit {
   invoice: Invoice | null = null;
   loading = true;
 
+  get groupedLineItems(): { projectName: string; items: typeof this.invoice.lineItems }[] {
+    if (!this.invoice) return [];
+    const map = new Map<string, typeof this.invoice.lineItems>();
+    for (const item of this.invoice.lineItems) {
+      if (!map.has(item.projectName)) map.set(item.projectName, []);
+      map.get(item.projectName)!.push(item);
+    }
+    return Array.from(map.entries()).map(([projectName, items]) => ({ projectName, items }));
+  }
+
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
@@ -314,26 +336,39 @@ export class PortalInvoiceViewComponent implements OnInit {
     doc.setTextColor(30);
     doc.text(invoice.customerName, 14, 59);
 
-    const tableData = invoice.lineItems.map(item => [
-      item.projectName,
-      String(item.hours),
-      `$${item.rate.toFixed(2)}/hr`,
-      `$${item.amount.toFixed(2)}`
-    ]);
+    const tableBody: string[][] = [];
+    const projectHeaderIndices = new Set<number>();
+    for (const group of this.groupedLineItems) {
+      projectHeaderIndices.add(tableBody.length);
+      tableBody.push([group.projectName, '', '', '']);
+      for (const item of group.items) {
+        tableBody.push([String(item.hours), `$${item.rate.toFixed(2)}/hr`, `$${item.amount.toFixed(2)}`, '']);
+      }
+    }
 
     autoTable(doc, {
       startY: 68,
-      head: [['Project', 'Hours', 'Rate', 'Amount']],
-      body: tableData,
+      head: [['Hours', 'Rate', 'Amount', '']],
+      body: tableBody,
       foot: [
-        ['', '', 'Subtotal', `$${invoice.subtotal.toFixed(2)}`],
-        ['', '', 'Total', `$${invoice.total.toFixed(2)}`]
+        ['', 'Subtotal', `$${invoice.subtotal.toFixed(2)}`, ''],
+        ['', 'Total', `$${invoice.total.toFixed(2)}`, '']
       ],
       theme: 'striped',
       headStyles: { fillColor: [30, 58, 138], textColor: [255, 255, 255], fontStyle: 'bold' },
       footStyles: { fillColor: [245, 245, 245], textColor: [30, 30, 30], fontStyle: 'bold' },
       styles: { fontSize: 10, cellPadding: 5 },
-      columnStyles: { 3: { halign: 'right' } }
+      columnStyles: { 2: { halign: 'right' } },
+      didParseCell: (data) => {
+        if (data.section === 'body' && projectHeaderIndices.has(data.row.index)) {
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.textColor = [30, 58, 138];
+          data.cell.styles.fillColor = [241, 245, 249];
+          if (data.column.index === 0) {
+            data.cell.colSpan = 4;
+          }
+        }
+      }
     });
 
     if (invoice.notes) {

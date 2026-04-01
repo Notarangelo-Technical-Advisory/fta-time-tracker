@@ -90,7 +90,6 @@ import autoTable from 'jspdf-autotable';
         <table class="line-items-table details-table">
           <thead>
             <tr>
-              <th>Project</th>
               <th>Date</th>
               <th>Hours</th>
               <th>Rate</th>
@@ -98,17 +97,21 @@ import autoTable from 'jspdf-autotable';
             </tr>
           </thead>
           <tbody>
-            <ng-container *ngFor="let item of invoice.lineItems">
-              <tr>
-                <td>{{ item.projectName }}</td>
-                <td class="date-cell">{{ getDatePart(item.description) }}</td>
-                <td>{{ item.hours }}</td>
-                <td>\${{ item.rate.toFixed(2) }}/hr</td>
-                <td class="text-right">\${{ item.amount.toFixed(2) }}</td>
+            <ng-container *ngFor="let group of groupedLineItems">
+              <tr class="project-header-row">
+                <td colspan="4">{{ group.projectName }}</td>
               </tr>
-              <tr *ngIf="getDescriptionPart(item.description)" class="desc-row">
-                <td colspan="5" class="desc-cell">{{ getDescriptionPart(item.description) }}</td>
-              </tr>
+              <ng-container *ngFor="let item of group.items">
+                <tr>
+                  <td class="date-cell">{{ getDatePart(item.description) }}</td>
+                  <td>{{ item.hours }}</td>
+                  <td>\${{ item.rate.toFixed(2) }}/hr</td>
+                  <td class="text-right">\${{ item.amount.toFixed(2) }}</td>
+                </tr>
+                <tr *ngIf="getDescriptionPart(item.description)" class="desc-row">
+                  <td colspan="4" class="desc-cell">{{ getDescriptionPart(item.description) }}</td>
+                </tr>
+              </ng-container>
             </ng-container>
           </tbody>
         </table>
@@ -304,6 +307,15 @@ import autoTable from 'jspdf-autotable';
       }
     }
 
+    .project-header-row td {
+      background: $color-gray-50;
+      font-weight: $font-weight-semibold;
+      color: $color-primary;
+      font-size: $font-size-sm;
+      padding: $spacing-sm $spacing-base;
+      border-bottom: 2px solid $color-primary;
+    }
+
     .details-table {
       margin-bottom: $spacing-2xl;
     }
@@ -380,6 +392,16 @@ export class InvoiceDetailComponent implements OnInit {
 
   invoice: Invoice | null = null;
   loading = true;
+
+  get groupedLineItems(): { projectName: string; items: typeof this.invoice.lineItems }[] {
+    if (!this.invoice) return [];
+    const map = new Map<string, typeof this.invoice.lineItems>();
+    for (const item of this.invoice.lineItems) {
+      if (!map.has(item.projectName)) map.set(item.projectName, []);
+      map.get(item.projectName)!.push(item);
+    }
+    return Array.from(map.entries()).map(([projectName, items]) => ({ projectName, items }));
+  }
 
   get invoiceSummaryRows(): { projectName: string; hours: number; rate: number; amount: number }[] {
     if (!this.invoice) return [];
@@ -512,34 +534,48 @@ export class InvoiceDetailComponent implements OnInit {
     doc.setTextColor(100);
     doc.text('DETAILS', 14, summaryEndY);
 
-    // Details table — main row per item, then optional description sub-row
+    // Details table — grouped by project, with project header rows
     const detailsBody: string[][] = [];
+    const projectHeaderIndices = new Set<number>();
     const descRowIndices = new Set<number>();
-    for (const item of invoice.lineItems) {
-      const datePart = this.getDatePart(item.description);
-      const descPart = this.getDescriptionPart(item.description);
-      detailsBody.push([item.projectName, datePart, String(item.hours), `$${item.rate.toFixed(2)}/hr`, `$${item.amount.toFixed(2)}`]);
-      if (descPart) {
-        descRowIndices.add(detailsBody.length);
-        detailsBody.push(['', descPart, '', '', '']);
+    for (const group of this.groupedLineItems) {
+      projectHeaderIndices.add(detailsBody.length);
+      detailsBody.push([group.projectName, '', '', '']);
+      for (const item of group.items) {
+        const datePart = this.getDatePart(item.description);
+        const descPart = this.getDescriptionPart(item.description);
+        detailsBody.push([datePart, String(item.hours), `$${item.rate.toFixed(2)}/hr`, `$${item.amount.toFixed(2)}`]);
+        if (descPart) {
+          descRowIndices.add(detailsBody.length);
+          detailsBody.push([descPart, '', '', '']);
+        }
       }
     }
 
     autoTable(doc, {
       startY: summaryEndY + 5,
-      head: [['Project', 'Date', 'Hours', 'Rate', 'Amount']],
+      head: [['Date', 'Hours', 'Rate', 'Amount']],
       body: detailsBody,
       theme: 'striped',
       headStyles: { fillColor: [30, 58, 138], textColor: [255, 255, 255], fontStyle: 'bold' },
       styles: { fontSize: 10, cellPadding: 5 },
-      columnStyles: { 4: { halign: 'right' } },
+      columnStyles: { 3: { halign: 'right' } },
       didParseCell: (data) => {
+        if (data.section === 'body' && projectHeaderIndices.has(data.row.index)) {
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.textColor = [30, 58, 138];
+          data.cell.styles.fillColor = [241, 245, 249];
+          data.cell.styles.fontSize = 10;
+          if (data.column.index === 0) {
+            data.cell.colSpan = 4;
+          }
+        }
         if (data.section === 'body' && descRowIndices.has(data.row.index)) {
           data.cell.styles.fontStyle = 'italic';
           data.cell.styles.textColor = [100, 116, 139];
           data.cell.styles.fontSize = 9;
           data.cell.styles.fillColor = [255, 255, 255];
-          if (data.column.index === 1) {
+          if (data.column.index === 0) {
             data.cell.styles.cellPadding = { top: 0, right: 5, bottom: 4, left: 14 };
           } else {
             data.cell.styles.cellPadding = { top: 0, right: 5, bottom: 4, left: 5 };
