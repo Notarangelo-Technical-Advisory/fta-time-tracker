@@ -432,7 +432,7 @@ import { Project } from '../../models/project.model';
       font-style: italic;
       padding-left: $spacing-2xl;
     }
-    .amount-cell { font-weight: $font-weight-bold; text-align: right; }
+    .amount-cell { font-weight: $font-weight-semibold; text-align: right; }
 
     .invoice-section-header {
       margin: $spacing-xl 0 $spacing-sm 0;
