@@ -2,7 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { InvoiceService } from '../../services/invoice.service';
-import { Invoice } from '../../models/invoice.model';
+import { Invoice, InvoiceLineItem } from '../../models/invoice.model';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -278,7 +278,7 @@ export class PortalInvoiceViewComponent implements OnInit {
   invoice: Invoice | null = null;
   loading = true;
 
-  get groupedLineItems(): { projectName: string; items: typeof this.invoice.lineItems }[] {
+  get groupedLineItems(): { projectName: string; items: InvoiceLineItem[] }[] {
     if (!this.invoice) return [];
     const map = new Map<string, typeof this.invoice.lineItems>();
     for (const item of this.invoice.lineItems) {
