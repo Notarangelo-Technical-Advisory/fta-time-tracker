@@ -189,7 +189,6 @@ import { Project } from '../../models/project.model';
           <table class="data-table preview-table details-table">
             <thead>
               <tr>
-                <th>Project</th>
                 <th>Date</th>
                 <th>Hours</th>
                 <th>Rate</th>
@@ -197,17 +196,21 @@ import { Project } from '../../models/project.model';
               </tr>
             </thead>
             <tbody>
-              <ng-container *ngFor="let item of previewLineItems">
-                <tr>
-                  <td>{{ item.projectName }}</td>
-                  <td class="date-cell">{{ getDatePart(item.description) }}</td>
-                  <td>{{ item.hours }}</td>
-                  <td>\${{ item.rate }}/hr</td>
-                  <td class="amount-cell">\${{ item.amount.toFixed(2) }}</td>
+              <ng-container *ngFor="let group of previewGroupedLineItems">
+                <tr class="project-header-row">
+                  <td colspan="4">{{ group.projectName }}</td>
                 </tr>
-                <tr *ngIf="getDescriptionPart(item.description)" class="desc-row">
-                  <td colspan="5" class="desc-cell">{{ getDescriptionPart(item.description) }}</td>
-                </tr>
+                <ng-container *ngFor="let item of group.items">
+                  <tr>
+                    <td class="date-cell">{{ getDatePart(item.description) }}</td>
+                    <td>{{ item.hours }}</td>
+                    <td>\${{ item.rate }}/hr</td>
+                    <td class="amount-cell">\${{ item.amount.toFixed(2) }}</td>
+                  </tr>
+                  <tr *ngIf="getDescriptionPart(item.description)" class="desc-row">
+                    <td colspan="4" class="desc-cell">{{ getDescriptionPart(item.description) }}</td>
+                  </tr>
+                </ng-container>
               </ng-container>
             </tbody>
           </table>
@@ -460,6 +463,15 @@ import { Project } from '../../models/project.model';
       }
     }
 
+    .project-header-row td {
+      background: $color-gray-50;
+      font-weight: $font-weight-semibold;
+      color: $color-primary;
+      font-size: $font-size-sm;
+      padding: $spacing-sm $spacing-base;
+      border-bottom: 2px solid $color-primary;
+    }
+
     .details-table {
       margin-bottom: $spacing-xl;
     }
@@ -577,6 +589,15 @@ export class InvoiceGenerateComponent implements OnInit {
 
   get allSelected(): boolean {
     return this.unbilledEntries.length > 0 && this.selectedEntries.length === this.unbilledEntries.length;
+  }
+
+  get previewGroupedLineItems(): { projectName: string; items: { projectName: string; description: string; hours: number; rate: number; amount: number }[] }[] {
+    const map = new Map<string, { projectName: string; description: string; hours: number; rate: number; amount: number }[]>();
+    for (const item of this.previewLineItems) {
+      if (!map.has(item.projectName)) map.set(item.projectName, []);
+      map.get(item.projectName)!.push(item);
+    }
+    return Array.from(map.entries()).map(([projectName, items]) => ({ projectName, items }));
   }
 
   get previewSummaryRows(): { projectName: string; hours: number; rate: number; amount: number }[] {
